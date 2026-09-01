@@ -25,84 +25,84 @@ static void write_file(const char *path, const char *contents, mode_t mode)
 
 static void test_command_candidate_sources(void)
 {
-    char *command = file_mention_build_fzf_command("src");
+    char *command = file_mention_build_fzy_command("src");
 
     EXPECT(strstr(command, "git ls-files -z --cached --others --exclude-standard") != NULL);
     EXPECT(strstr(command, "|| find .") != NULL);
     EXPECT(strstr(command, "-name .git") != NULL);
     EXPECT(strncmp(command, "{ ", 2) == 0);
-    EXPECT(strstr(command, "; } | fzf ") != NULL);
-    EXPECT(strstr(command, "--query='src'") != NULL);
+    EXPECT(strstr(command, "; } | fzy ") != NULL);
+    EXPECT(strstr(command, "-q 'src'") != NULL);
     EXPECT(strstr(command, "cd ") == NULL);
     free(command);
 }
 
 static void test_command_uses_nul_records(void)
 {
-    char *command = file_mention_build_fzf_command("");
+    char *command = file_mention_build_fzy_command("");
 
     EXPECT(strstr(command, "git ls-files -z") != NULL);
     EXPECT(strstr(command, "-print0") != NULL);
-    EXPECT(strstr(command, "--read0 --print0") != NULL);
+    EXPECT(strstr(command, "fzy -0 -q") != NULL);
     free(command);
 }
 
 static void test_command_quotes_query(void)
 {
-    char *command = file_mention_build_fzf_command("a b$(x)");
+    char *command = file_mention_build_fzy_command("a b$(x)");
 
-    EXPECT(strstr(command, "--query='a b$(x)'") != NULL);
+    EXPECT(strstr(command, "-q 'a b$(x)'") != NULL);
     free(command);
 
-    command = file_mention_build_fzf_command("it's");
-    EXPECT(strstr(command, "--query='it'\\''s'") != NULL);
+    command = file_mention_build_fzy_command("it's");
+    EXPECT(strstr(command, "-q 'it'\\''s'") != NULL);
     free(command);
 
-    command = file_mention_build_fzf_command("");
-    EXPECT(strstr(command, "--query=''") != NULL);
+    command = file_mention_build_fzy_command("");
+    EXPECT(strstr(command, "-q ''") != NULL);
     free(command);
 
-    command = file_mention_build_fzf_command(NULL);
-    EXPECT(strstr(command, "--query=''") != NULL);
+    command = file_mention_build_fzy_command(NULL);
+    EXPECT(strstr(command, "-q ''") != NULL);
     free(command);
 }
 
 static void test_command_parent_and_absolute_queries(void)
 {
-    char *command = file_mention_build_fzf_command("../");
+    char *command = file_mention_build_fzy_command("../");
 
     EXPECT(strstr(command, "cd '../' 2>/dev/null") != NULL);
-    EXPECT(strstr(command, "--query=''") != NULL);
+    EXPECT(strstr(command, "-q ''") != NULL);
     free(command);
 
-    command = file_mention_build_fzf_command("../foo");
+    command = file_mention_build_fzy_command("../foo");
     EXPECT(strstr(command, "cd '../' 2>/dev/null") != NULL);
-    EXPECT(strstr(command, "--query='foo'") != NULL);
+    EXPECT(strstr(command, "-q 'foo'") != NULL);
     free(command);
 
-    command = file_mention_build_fzf_command("..");
+    command = file_mention_build_fzy_command("..");
     EXPECT(strstr(command, "cd '../' 2>/dev/null") != NULL);
-    EXPECT(strstr(command, "--query=''") != NULL);
+    EXPECT(strstr(command, "-q ''") != NULL);
     free(command);
 
-    command = file_mention_build_fzf_command("../../lib/x");
+    command = file_mention_build_fzy_command("../../lib/x");
     EXPECT(strstr(command, "cd '../../lib/' 2>/dev/null") != NULL);
-    EXPECT(strstr(command, "--query='x'") != NULL);
+    EXPECT(strstr(command, "-q 'x'") != NULL);
     free(command);
 
-    command = file_mention_build_fzf_command("/tmp/x");
+    command = file_mention_build_fzy_command("/tmp/x");
     EXPECT(strstr(command, "cd '/tmp/' 2>/dev/null") != NULL);
-    EXPECT(strstr(command, "--query='x'") != NULL);
+    EXPECT(strstr(command, "-q 'x'") != NULL);
     free(command);
 
-    command = file_mention_build_fzf_command("../a b$(x)");
+    command = file_mention_build_fzy_command("../a b$(x)");
     EXPECT(strstr(command, "cd '../' 2>/dev/null") != NULL);
-    EXPECT(strstr(command, "--query='a b$(x)'") != NULL);
+    EXPECT(strstr(command, "-q 'a b$(x)'") != NULL);
     free(command);
 
-    command = file_mention_build_fzf_command("../a b$(x)/file");
+    command = file_mention_build_fzy_command("../a b$(x)/file");
     EXPECT(strstr(command, "cd '../a b$(x)/' 2>/dev/null") != NULL);
-    EXPECT(strstr(command, "--query='file'") != NULL);
+    EXPECT(strstr(command, "-q 'file'") != NULL);
     free(command);
 }
 
@@ -111,11 +111,11 @@ static void test_command_expands_home_root(void)
     char *expanded_root = path_expand_home("~/src/");
     char *quoted_root = shell_single_quote(expanded_root);
     char *expected_cd = xasprintf("cd %s 2>/dev/null", quoted_root);
-    char *command = file_mention_build_fzf_command("~/src/fil");
+    char *command = file_mention_build_fzy_command("~/src/fil");
 
     EXPECT(strstr(command, expected_cd) != NULL);
     EXPECT(strstr(command, "cd '~") == NULL);
-    EXPECT(strstr(command, "--query='fil'") != NULL);
+    EXPECT(strstr(command, "-q 'fil'") != NULL);
 
     free(command);
     free(expected_cd);
@@ -125,44 +125,44 @@ static void test_command_expands_home_root(void)
 
 static void test_command_keeps_project_queries_in_cwd(void)
 {
-    char *command = file_mention_build_fzf_command("src/tools/ba");
+    char *command = file_mention_build_fzy_command("src/tools/ba");
 
     EXPECT(strstr(command, "cd ") == NULL);
-    EXPECT(strstr(command, "--query='src/tools/ba'") != NULL);
+    EXPECT(strstr(command, "-q 'src/tools/ba'") != NULL);
     free(command);
 
-    command = file_mention_build_fzf_command("mispted/file");
+    command = file_mention_build_fzy_command("mispted/file");
     EXPECT(strstr(command, "cd ") == NULL);
-    EXPECT(strstr(command, "--query='mispted/file'") != NULL);
+    EXPECT(strstr(command, "-q 'mispted/file'") != NULL);
     free(command);
 
-    command = file_mention_build_fzf_command("./src/x");
+    command = file_mention_build_fzy_command("./src/x");
     EXPECT(strstr(command, "cd ") == NULL);
-    EXPECT(strstr(command, "--query='./src/x'") != NULL);
+    EXPECT(strstr(command, "-q './src/x'") != NULL);
     free(command);
 
-    command = file_mention_build_fzf_command("~other/x");
+    command = file_mention_build_fzy_command("~other/x");
     EXPECT(strstr(command, "cd ") == NULL);
-    EXPECT(strstr(command, "--query='~other/x'") != NULL);
+    EXPECT(strstr(command, "-q '~other/x'") != NULL);
     free(command);
 }
 
-static void test_pick_reads_and_rejoins_nul_record(void)
+static void test_pick_preserves_newline_in_selection(void)
 {
-    static const char FZF_SCRIPT[] = "#!/bin/sh\n"
-                                     "printf '%s\\000' \"$HAX_TEST_FZF_SELECTION\"\n";
+    static const char FZY_SCRIPT[] = "#!/bin/sh\n"
+                                     "printf '%s\\n' \"$HAX_TEST_FZY_SELECTION\"\n";
     char *dir = t_tempdir();
-    char *fzf_path = xasprintf("%s/fzf", dir);
+    char *fzy_path = xasprintf("%s/fzy", dir);
     char *picked_file = xasprintf("%s/picked\nfile.txt", dir);
     char *query = xasprintf("%s/", dir);
 
-    write_file(fzf_path, FZF_SCRIPT, 0755);
+    write_file(fzy_path, FZY_SCRIPT, 0755);
     write_file(picked_file, "contents", 0644);
-    /* Prepended rather than replacing PATH: the stub still shadows any real fzf, but the system
+    /* Prepended rather than replacing PATH: the stub still shadows any real fzy, but the system
      * directories stay reachable for the utilities it runs. printf is a builtin in dash and
      * FreeBSD's sh, but not in the ksh that OpenBSD installs as /bin/sh. */
     char *saved_path = t_path_prepend(dir);
-    setenv("HAX_TEST_FZF_SELECTION", "./picked\nfile.txt", 1);
+    setenv("HAX_TEST_FZY_SELECTION", "./picked\nfile.txt", 1);
 
     EXPECT(file_mention_available() == 1);
     char *picked = file_mention_pick(query);
@@ -171,11 +171,11 @@ static void test_pick_reads_and_rejoins_nul_record(void)
         EXPECT_STR_EQ(picked, picked_file);
 
     free(picked);
-    unsetenv("HAX_TEST_FZF_SELECTION");
+    unsetenv("HAX_TEST_FZY_SELECTION");
     t_path_restore(saved_path);
     free(query);
     free(picked_file);
-    free(fzf_path);
+    free(fzy_path);
 }
 
 static int match_mention(const char *buffer, size_t len, size_t cursor, size_t *start, size_t *end)
@@ -232,7 +232,7 @@ int main(void)
     test_command_parent_and_absolute_queries();
     test_command_expands_home_root();
     test_command_keeps_project_queries_in_cwd();
-    test_pick_reads_and_rejoins_nul_record();
+    test_pick_preserves_newline_in_selection();
     test_completer_matches_mentions();
     test_completer_rejects_non_mentions();
     T_REPORT();

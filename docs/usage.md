@@ -122,7 +122,7 @@ The editor supports common readline-style movement and history keys. Notable hax
 | Ctrl-T | Open the model-facing transcript in `$PAGER`. |
 | Ctrl-V | Paste an image, or clipboard text when no image is available. |
 | Tab | Complete a `/` command name. |
-| `@` + Tab | Choose a project file with `fzf`. |
+| `@` + Tab | Choose a project file with `fzy`. |
 
 Ctrl-O is the best view for reviewing what happened. Ctrl-T includes the system prompt, tool schemas,
 model-visible tool calls/results, and post-compaction context; use it when diagnosing why the model
@@ -167,7 +167,7 @@ context sections can also be disabled through [configuration](./configuration.md
 
 ## Files and images
 
-Mention a file as ordinary prompt text, for example `@src/main.c`. With `fzf` installed, type an
+Mention a file as ordinary prompt text, for example `@src/main.c`. With `fzy` installed, type an
 `@`-prefixed fragment and press Tab to search project files. In a Git repository the picker includes
 tracked and untracked-but-not-ignored files. `@../`, `@~/`, and absolute prefixes search from the
 named directory. Selecting a file inserts its path; the model reads it only if needed.

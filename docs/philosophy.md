@@ -87,7 +87,7 @@ pauses a running turn for steering, and `max_turns` can bound unattended runs.
 ### No custom slash commands
 
 Reusable prompts are files. Keep them in your repo (or anywhere) and `@`-mention one at the
-prompt — the fzf picker makes them discoverable, and the model reads the file it is pointed at.
+prompt — the fzy picker makes them discoverable, and the model reads the file it is pointed at.
 That is an instruction to the model rather than the deterministic text expansion a command
 system performs, but the extra read is cheap and the outcome is the same in practice. Personal
 repetition is already covered by prompt history (Ctrl-R, persisted across sessions), and
@@ -100,7 +100,7 @@ A dependency is a permanent tax on every build, port, and audit, so the default 
 add a library" is no. One format serves both config and the wire because a JSON parser is
 linked anyway — TOML or YAML would mean a second parser for a marginal gain in comfort.
 Terminal handling and unified-diff generation are in-tree rather than ncurses or a diff library.
-Where a separate program already does the job well, hax runs it instead of linking it — `fzf` for
+Where a separate program already does the job well, hax runs it instead of linking it — `fzy` for
 the `@` file picker, and `$EDITOR` and `$PAGER` where they fit — the same out-of-process
 composition the rest of the design leans on. What does get linked must be in Debian main and
 either ship with macOS or be one `brew install` away, and must not be GPL.

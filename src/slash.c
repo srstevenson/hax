@@ -224,7 +224,7 @@ static const struct shortcut SHORTCUTS[] = {
     {.key = "@ + tab",
      .description = "pick a project file to mention",
      .available = file_mention_available,
-     .unavailable_note = "(fzf not installed)"},
+     .unavailable_note = "(fzy not installed)"},
 };
 #define N_SHORTCUTS (sizeof(SHORTCUTS) / sizeof(SHORTCUTS[0]))
 

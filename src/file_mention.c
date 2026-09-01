@@ -18,17 +18,15 @@
 #include "text/shell_quote.h"
 
 /* NUL records preserve non-ASCII paths that git line mode would quote and filenames containing
- * newlines. Keep candidates streaming: fzf reads stdin asynchronously while using /dev/tty. */
+ * newlines. */
 #define FILE_CANDIDATES_COMMAND                                                                    \
     "git ls-files -z --cached --others --exclude-standard 2>/dev/null"                             \
     " || find . \\( -name .git -o -name node_modules \\) -prune -o -type f -print0 2>/dev/null"
 
-/* `%%` is a literal percent in the xasprintf format. */
-#define FZF_COMMAND_SUFFIX                                                                         \
-    " | fzf --read0 --print0 --height=~40%% --layout=reverse --scheme=path --query=%s"
+#define FZY_COMMAND_SUFFIX " | fzy -0 -q %s"
 
 /* Includes the terminating NUL; longer selections are rejected rather than truncated. */
-#define FZF_SELECTION_CAPACITY 4096
+#define FZY_SELECTION_CAPACITY 4096
 
 struct picker_query {
     char *root;
@@ -41,9 +39,9 @@ enum record_result {
     RECORD_TOO_LONG,
 };
 
-static int fzf_available(void)
+static int fzy_available(void)
 {
-    char *path = fs_which("fzf");
+    char *path = fs_which("fzy");
 
     if (!path)
         return 0;
@@ -88,7 +86,7 @@ static struct picker_query parse_picker_query(const char *text)
     return query;
 }
 
-static char *build_fzf_command(const struct picker_query *query)
+static char *build_fzy_command(const struct picker_query *query)
 {
     char *quoted_filter = shell_single_quote(query->filter);
     char *command;
@@ -99,29 +97,28 @@ static char *build_fzf_command(const struct picker_query *query)
         char *quoted_root = shell_single_quote(expanded_root);
 
         command = xasprintf("{ cd %s 2>/dev/null && { " FILE_CANDIDATES_COMMAND
-                            "; }; }" FZF_COMMAND_SUFFIX,
+                            "; }; }" FZY_COMMAND_SUFFIX,
                             quoted_root, quoted_filter);
         free(quoted_root);
         free(expanded_root);
     } else {
-        command = xasprintf("{ " FILE_CANDIDATES_COMMAND "; }" FZF_COMMAND_SUFFIX, quoted_filter);
+        command = xasprintf("{ " FILE_CANDIDATES_COMMAND "; }" FZY_COMMAND_SUFFIX, quoted_filter);
     }
 
     free(quoted_filter);
     return command;
 }
 
-char *file_mention_build_fzf_command(const char *query_text)
+char *file_mention_build_fzy_command(const char *query_text)
 {
     struct picker_query query = parse_picker_query(query_text);
-    char *command = build_fzf_command(&query);
+    char *command = build_fzy_command(&query);
 
     free(query.root);
     free(query.filter);
     return command;
 }
 
-/* Accept EOF after bytes as a complete record; fzf variants may omit the trailing NUL. */
 static enum record_result read_record(FILE *stream, char *record, size_t capacity)
 {
     size_t len = 0;
@@ -130,11 +127,13 @@ static enum record_result read_record(FILE *stream, char *record, size_t capacit
     for (;;) {
         int byte = fgetc(stream);
 
-        if (byte == EOF && len == 0 && !too_long)
-            return RECORD_END;
-        if (byte == EOF || byte == '\0') {
+        if (byte == EOF) {
+            if (len == 0 && !too_long)
+                return RECORD_END;
             if (too_long)
                 return RECORD_TOO_LONG;
+            if (record[len - 1] == '\n')
+                len--;
             record[len] = '\0';
             return RECORD_COMPLETE;
         }
@@ -145,17 +144,17 @@ static enum record_result read_record(FILE *stream, char *record, size_t capacit
     }
 }
 
-static char *pick_with_fzf(const char *query_text)
+static char *pick_with_fzy(const char *query_text)
 {
     struct picker_query query = parse_picker_query(query_text);
-    /* Paths are bytes hax renders and reads back, and fzf draws them in a full-screen UI of its
-     * own, so a non-ASCII name has to survive the round trip intact. */
-    char *command = spawn_shell_cmd_force_utf8(build_fzf_command(&query));
+    /* Paths are bytes hax renders and reads back, and fzy draws them in a terminal UI of its own,
+     * so a non-ASCII name has to survive the round trip intact. */
+    char *command = spawn_shell_cmd_force_utf8(build_fzy_command(&query));
     char *picked_path = NULL;
     struct spawn_pipe pipe;
 
     if (spawn_pipe_open_read(&pipe, command) == 0) {
-        char record[FZF_SELECTION_CAPACITY];
+        char record[FZY_SELECTION_CAPACITY];
 
         if (read_record(pipe.stream, record, sizeof(record)) == RECORD_COMPLETE) {
             const char *relative_path = strncmp(record, "./", 2) == 0 ? record + 2 : record;
@@ -180,21 +179,21 @@ static char *pick_with_fzf(const char *query_text)
 
 int file_mention_available(void)
 {
-    return fzf_available();
+    return fzy_available();
 }
 
 char *file_mention_pick(const char *query_text)
 {
-    if (!fzf_available()) {
-        hax_warn("@file completion needs fzf installed");
+    if (!fzy_available()) {
+        hax_warn("@file completion needs fzy installed");
         return NULL;
     }
 
-    char *path = pick_with_fzf(query_text);
+    char *path = pick_with_fzy(query_text);
     if (!path)
         return NULL;
 
-    /* The selection may refer to a stale git entry or a file deleted while fzf was open. */
+    /* The selection may refer to a stale git entry or a file deleted while fzy was open. */
     char *expanded_path = path_expand_home(path);
     if (fs_check_regular(expanded_path) != 0) {
         hax_warn("cannot mention '%s': %s", path, strerror(errno));

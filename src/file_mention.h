@@ -4,13 +4,13 @@
 
 struct input_completer;
 
-/* Open fzf with `query_text` as its initial filter. Absolute, home-relative, and parent-relative
+/* Open fzy with `query_text` as its initial filter. Absolute, home-relative, and parent-relative
  * queries search from their directory prefix; other queries search the current directory. The
  * terminal must be in cooked mode. Return an allocated regular-file path, or NULL on cancellation
  * or failure. A NULL query is equivalent to an empty query. */
 char *file_mention_pick(const char *query_text);
 
-/* Return whether fzf is currently available on PATH. */
+/* Return whether fzy is currently available on PATH. */
 int file_mention_available(void);
 
 /* Match tokens beginning with `@` at the buffer start or after whitespace, replacing from `@`
@@ -18,6 +18,6 @@ int file_mention_available(void);
 extern const struct input_completer file_mention_completer;
 
 /* Return an allocated /bin/sh command for the given query; NULL is equivalent to an empty query. */
-char *file_mention_build_fzf_command(const char *query_text);
+char *file_mention_build_fzy_command(const char *query_text);
 
 #endif /* HAX_FILE_MENTION_H */
